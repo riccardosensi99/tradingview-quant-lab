@@ -37,3 +37,20 @@ reporting:
   include_mcp_tools_used: true
   include_excluded_symbols: true
   include_data_limitations: true
+
+# Regime classification thresholds (scripts/regime/classify-regime.ts).
+# Defaults follow conventional technical-analysis ranges (e.g. Wilder's
+# ADX>25 = trending), not values derived from this repo's own data — treat
+# as a starting point to tune once real scans accumulate.
+regime:
+  min_metrics_required: 3
+  strong_trend_adx_min: 25
+  weak_trend_adx_min: 15
+  compression_atr_percentile_max: 20
+  disorder_atr_percentile_min: 80
+  narrow_bb_width_pct_max: 2
+  wide_bb_width_pct_min: 6
+  range_efficiency_ratio_max: 0.3
+  trend_efficiency_ratio_min: 0.5
+  low_relative_volume_max: 0.5
+  conflict_margin_ratio: 0.15

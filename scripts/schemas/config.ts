@@ -62,6 +62,34 @@ export const ScannerConfigSchema = z.object({
       include_excluded_symbols: true,
       include_data_limitations: true,
     }),
+
+  regime: z
+    .object({
+      min_metrics_required: z.number().int().positive().default(3),
+      strong_trend_adx_min: z.number().positive().default(25),
+      weak_trend_adx_min: z.number().positive().default(15),
+      compression_atr_percentile_max: z.number().min(0).max(100).default(20),
+      disorder_atr_percentile_min: z.number().min(0).max(100).default(80),
+      narrow_bb_width_pct_max: z.number().positive().default(2),
+      wide_bb_width_pct_min: z.number().positive().default(6),
+      range_efficiency_ratio_max: z.number().min(0).max(1).default(0.3),
+      trend_efficiency_ratio_min: z.number().min(0).max(1).default(0.5),
+      low_relative_volume_max: z.number().positive().default(0.5),
+      conflict_margin_ratio: z.number().min(0).max(1).default(0.15),
+    })
+    .default({
+      min_metrics_required: 3,
+      strong_trend_adx_min: 25,
+      weak_trend_adx_min: 15,
+      compression_atr_percentile_max: 20,
+      disorder_atr_percentile_min: 80,
+      narrow_bb_width_pct_max: 2,
+      wide_bb_width_pct_min: 6,
+      range_efficiency_ratio_max: 0.3,
+      trend_efficiency_ratio_min: 0.5,
+      low_relative_volume_max: 0.5,
+      conflict_margin_ratio: 0.15,
+    }),
 });
 export type ScannerConfig = z.infer<typeof ScannerConfigSchema>;
 
