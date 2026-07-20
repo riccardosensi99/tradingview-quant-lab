@@ -58,8 +58,11 @@ tradingview-quant-lab/
 │   ├── tradingview-market-scanner/       # SKILL.md + scoring.md, risk-management.md,
 │   │                                      # output-template.md (still TODO placeholders —
 │   │                                      # the real logic lives in scripts/, not these docs)
-│   └── tradingview-strategy-research/    # SKILL.md + validation-protocol.md, walk-forward.md,
-│                                          # monte-carlo.md (same caveat)
+│   ├── tradingview-strategy-research/    # SKILL.md + validation-protocol.md, walk-forward.md,
+│   │                                      # monte-carlo.md (same caveat)
+│   └── tradingview-strategy-generator/   # SKILL.md + generation-protocol.md, hypothesis-template.md,
+│                                          # quality-gates.md, output-template.md, registry-integration.md —
+│                                          # generates falsifiable hypotheses, no MCP calls at all (§6, ADR 0003)
 │
 ├── config/
 │   ├── scanner.yaml    # watchlist/timeframes/max_results/min_score/mode/filters/reporting/regime
@@ -83,20 +86,24 @@ tradingview-quant-lab/
 │   ├── validation/  # Milestone 3: derived-metrics.ts, monte-carlo.ts, walk-forward.ts,
 │   │                #   parameter-stability.ts, cost-sensitivity.ts, long-short.ts,
 │   │                #   classify.ts (the classifier), validation-report.ts
+│   ├── generation/  # tradingview-strategy-generator: registry-analysis.ts, originality-check.ts,
+│   │                #   quality-gates.ts, idea-report.ts, registry-entry-from-idea.ts — zero MCP,
+│   │                #   zero disk access except the one explicit write step (ADR 0003)
 │   ├── regime/      # Milestone 5: classify-regime.ts, from-config.ts, types.ts
 │   ├── scoring/     # Milestone 6: scoring-engine.ts, regime-component.ts, mtf-component.ts
 │   ├── risk/        # Milestone 6: position-sizing.ts, aggregate-risk.ts, correlation-filter.ts
 │   └── scanner/     # Milestone 7: select-strategies.ts, run-scan.ts, assemble-scan-input.ts,
 │                     #   report-markdown.ts, report-json.ts, types.ts
 │
-├── tests/            # 30 files, 140 Vitest tests — one file per module above, plus fixtures
-│                      #   (test-paths.ts, scanner-fixtures.ts)
+├── tests/            # 36 files, 201 Vitest tests — one file per module above, plus fixtures
+│                      #   (test-paths.ts, scanner-fixtures.ts, hypothesis-fixtures.ts)
 │
 ├── reports/
 │   ├── scans/         # generated, gitignored except .gitkeep — Markdown + JSON per scan
 │   ├── backtests/     # generated, gitignored except .gitkeep (one real example is untracked
 │   │                   #   on disk: sr-volume-zones_2026-07-20.md, referenced by the registry)
-│   └── validations/   # generated, gitignored except .gitkeep
+│   ├── validations/   # generated, gitignored except .gitkeep
+│   └── ideas/         # generated, gitignored except .gitkeep — tradingview-strategy-generator's output
 │
 ├── research/          # freeform notes/analysis that doesn't fit structured skill output
 └── docs/decisions/    # ADRs — see §21
@@ -115,10 +122,11 @@ tradingview-quant-lab/
 | `scripts/scoring/` | The 9-component score aggregator and two concrete component scorers (regime, multi-timeframe alignment). | No | `regime/`, `schemas/` |
 | `scripts/risk/` | Risk/reward and position-size math, aggregate-risk capping, FX-exposure correlation filtering. | No | — |
 | `scripts/scanner/` | Orchestration: strategy selection (validated-only), gating, correlation + risk filtering, ranking, NO TRADE, Markdown/JSON report rendering, `assembleScanInput` (the one place real MCP-read data is shaped into the pipeline's input type). | No | everything above |
+| `scripts/generation/` | Idea generation for `tradingview-strategy-generator`: registry gap analysis, originality check against existing entries, quality gates, generation-report rendering, and mapping an approved hypothesis to a new registry entry. | No — this skill never calls MCP at all, not even indirectly via the adapter | `schemas/` (incl. `schemas/hypothesis.ts`), `scripts/regime/types.ts` (regime taxonomy reuse), `research/registry-io` (write step only) |
 
 ## 6. Lifecycle delle strategie
 
-`strategies/registry.yaml`'s `status` field is the single source of truth, with 7 values: `experimental`, `validation_pending`, `validated`, `disabled`, `rejected`, `needs_more_data`, `validation_failed`. `stage` tracks progress independently: `idea → backtest → walk_forward → monte_carlo → paper → live`.
+`strategies/registry.yaml`'s `status` field is the single source of truth, with 7 values: `experimental`, `validation_pending`, `validated`, `disabled`, `rejected`, `needs_more_data`, `validation_failed`. `stage` tracks progress independently: `idea → backtest → walk_forward → monte_carlo → paper → live`. `tradingview-strategy-generator` is the sole producer of `stage: idea` entries (ADR 0003) — every other stage still requires `pine_script_id` and `metrics` to be present, enforced by a `superRefine` on `StrategyRegistryEntrySchema`.
 
 **Deliberate asymmetry**: only 3 of the 7 status values have a corresponding physical folder under `strategies/` (`experimental/`, `validated/`, `rejected/`). `validation_pending`, `disabled`, `needs_more_data`, and `validation_failed` exist only as registry values — there was never a requirement (or a real use case yet) to physically relocate a strategy's files for those states, and Pine source itself lives in TradingView's own editor, not as a committed `.pine` file (`strategies/pine/` is for optional local snapshots, not the source of truth).
 
@@ -128,8 +136,9 @@ Only `classifyStrategy()` in `scripts/validation/classify.ts` may reasonably be 
 - All required criteria present and passing → `validated`.
 - All required criteria present, one or more failing → `validation_failed`.
 
-## 7. Workflow Research → Validation → Registry → Scanner
+## 7. Workflow Generation → Research → Validation → Registry → Scanner
 
+0. **Generation** (`scripts/generation/`, `tradingview-strategy-generator`): a registry gap analysis (`registry-analysis.ts`) informs one or more falsifiable hypotheses, each checked for originality against the existing registry (`originality-check.ts`) and run through 10 quality gates (`quality-gates.ts`). Surviving ideas are rendered to a report (`idea-report.ts`) under `reports/ideas/` and — only after explicit human approval — written to `strategies/registry.yaml` at `status: experimental`, `stage: idea`, with no Pine code and no backtest metrics (`registry-entry-from-idea.ts`). No MCP call happens anywhere in this stage.
 1. **Research** (`scripts/research/`): a strategy's raw `data_get_strategy_results` read is normalized (`normalize-strategy-results.ts`, mapping only the 7 field names actually verified in `MCP_CAPABILITIES.md`), sanity-checked (`basic-checks.ts`), and written up as a backtest report (`backtest-report.ts`) under `reports/backtests/`.
 2. **Validation** (`scripts/validation/`): the accumulated evidence (out-of-sample results, walk-forward summary, Monte Carlo distribution, parameter-stability read, cost-sensitivity comparison, long/short balance) is run through `classify.ts` against `config/validation.yaml`'s thresholds, producing a status verdict + a criterion-by-criterion rationale, rendered via `validation-report.ts` to `reports/validations/`.
 3. **Registry** (`scripts/research/registry-io.ts`): the verdict updates `strategies/registry.yaml` in the same pass as the report that justifies it — `stage`, `status`, `metrics`/`results`, and the new report path move together, never independently.
@@ -232,6 +241,7 @@ Mechanics:
 8. Correlation is auto-derived only for unambiguous 6-letter FX tickers; every other instrument requires an explicit, caller-supplied exposure tag.
 9. Validation classification defaults to `needs_more_data` on any missing required evidence — it never interpolates or assumes.
 10. Reports are reproducible generated artifacts (gitignored except `.gitkeep`); only their frontmatter shape is schema-validated, not their full content.
+11. `StrategyRegistryEntrySchema` requires `pine_script_id`/`metrics` for every stage except `idea`, enforced via `superRefine`, not a blanket-optional relaxation — the schema still guarantees no non-idea entry lacks evidence (ADR 0003).
 
 ## 19. Definition of Done
 

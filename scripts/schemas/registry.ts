@@ -8,6 +8,12 @@
 // fields — continues to validate as-is. Do not backfill invented values into
 // the new optional fields; leave them absent until a real research pass
 // produces the data.
+//
+// `pine_script_id` and `metrics` are optional in shape but conditionally
+// required by the `superRefine` below: absent only when `stage === "idea"`
+// (the tradingview-strategy-generator skill's output — a hypothesis with no
+// Pine code and no backtest yet), required for every other stage. This is
+// deliberately not a blanket relaxation — see docs/decisions/0003-idea-stage-registry-entries.md.
 
 import { z } from "zod";
 
@@ -36,6 +42,7 @@ export const StrategyStageSchema = z.enum([
 export type StrategyStage = z.infer<typeof StrategyStageSchema>;
 
 export const TradeDirectionSchema = z.enum(["long", "short"]);
+export type TradeDirection = z.infer<typeof TradeDirectionSchema>;
 
 /** A period boundary, e.g. an in-sample/validation/out-of-sample window. Dates
  * are kept as plain ISO strings (not parsed to Date) so the schema controls
@@ -103,30 +110,38 @@ export const LegacyMetricsSchema = z.object({
 export const ReportsSchema = z.object({
   backtests: z.array(z.string()).default([]),
   validations: z.array(z.string()).default([]),
+  // Generation reports from tradingview-strategy-generator (reports/ideas/).
+  ideas: z.array(z.string()).default([]),
 });
 
-export const StrategyRegistryEntrySchema = z.object({
-  // --- original fields (required, unchanged shape) ---
+const StrategyRegistryEntryShape = z.object({
+  // --- original fields (required for every stage except "idea" — see the
+  // superRefine below and the file header) ---
   id: z.string(),
   name: z.string(),
-  pine_script_id: z.string(),
+  pine_script_id: z.string().optional(),
   status: StrategyStatusSchema,
   stage: StrategyStageSchema,
   symbol_universe: z.array(z.string()),
   timeframe: z.string(),
   created: z.string(),
   last_updated: z.string(),
-  metrics: LegacyMetricsSchema,
+  metrics: LegacyMetricsSchema.optional(),
   reports: ReportsSchema,
   notes: z.string().optional(),
 
   // --- extended fields (all optional — see file header) ---
   description: z.string().optional(),
   version: z.string().optional(),
+  // Open taxonomy tag (e.g. "trend_pullback") — deliberately a free string,
+  // not a closed enum, since the family taxonomy is illustrative/non-exhaustive
+  // (see .claude/skills/tradingview-strategy-generator/generation-protocol.md).
+  family: z.string().optional(),
   providers_tested: z.array(z.string()).optional(),
   timeframes_supported: z.array(z.string()).optional(),
   regimes_supported: z.array(z.string()).optional(),
   directions_supported: z.array(TradeDirectionSchema).optional(),
+  sessions_supported: z.array(z.string()).optional(),
   parameters: z.record(z.string(), z.unknown()).optional(),
   locked_parameters: z.array(z.string()).optional(),
   last_validated: z.string().optional(),
@@ -176,6 +191,29 @@ export const StrategyRegistryEntrySchema = z.object({
   risks: z.array(z.string()).optional(),
   invalidation_conditions: z.array(z.string()).optional(),
   pine_script_version: z.string().optional(),
+});
+
+/** `pine_script_id`/`metrics` are only allowed to be absent at `stage: "idea"`
+ * — every later stage (backtest onward) implies Pine code exists and at
+ * least one backtest has run, so both must be present. This keeps the
+ * relaxation scoped to exactly the one new legitimate case instead of
+ * weakening the guarantee for every stage. */
+export const StrategyRegistryEntrySchema = StrategyRegistryEntryShape.superRefine((entry, ctx) => {
+  if (entry.stage === "idea") return;
+  if (entry.pine_script_id === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["pine_script_id"],
+      message: `pine_script_id is required once stage is "${entry.stage}" (only absent at stage: "idea")`,
+    });
+  }
+  if (entry.metrics === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["metrics"],
+      message: `metrics is required once stage is "${entry.stage}" (only absent at stage: "idea")`,
+    });
+  }
 });
 export type StrategyRegistryEntry = z.infer<typeof StrategyRegistryEntrySchema>;
 

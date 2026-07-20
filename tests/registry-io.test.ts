@@ -29,7 +29,7 @@ describe("registry-io", () => {
 
   it("findStrategy finds sr-volume-zones and returns undefined for an unknown id", () => {
     const registry = readRegistry(repoPath("strategies/registry.yaml"));
-    expect(findStrategy(registry, "sr-volume-zones")?.status).toBe("experimental");
+    expect(findStrategy(registry, "sr-volume-zones")?.status).toBe("needs_more_data");
     expect(findStrategy(registry, "does-not-exist")).toBeUndefined();
   });
 
@@ -54,7 +54,7 @@ describe("registry-io", () => {
         total_trades: 0,
         win_rate_pct: 0,
       },
-      reports: { backtests: [], validations: [] },
+      reports: { backtests: [], validations: [], ideas: [] },
     };
 
     const updated = upsertStrategy(registry, newEntry);

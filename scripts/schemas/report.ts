@@ -35,3 +35,16 @@ export const BacktestReportFrontmatterSchema = z.object({
   source: z.string(),
 });
 export type BacktestReportFrontmatter = z.infer<typeof BacktestReportFrontmatterSchema>;
+
+/** Frontmatter for reports/ideas/<YYYY-MM-DD>_<HHmm>_generation.md, per
+ * .claude/skills/tradingview-strategy-generator/output-template.md.
+ * `constraints_received` is the free-text CLI-style flags the skill was
+ * invoked with (e.g. "--count 3 --market forex"), or "" if invoked bare. */
+export const GenerationReportFrontmatterSchema = z.object({
+  date: z.string(),
+  registry_strategies_count: z.number().int().nonnegative(),
+  ideas_proposed: z.number().int().nonnegative(),
+  ideas_discarded: z.number().int().nonnegative(),
+  constraints_received: z.string().default(""),
+});
+export type GenerationReportFrontmatter = z.infer<typeof GenerationReportFrontmatterSchema>;

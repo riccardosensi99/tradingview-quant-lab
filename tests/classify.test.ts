@@ -22,7 +22,7 @@ const baseEntry: StrategyRegistryEntry = {
     total_trades: 10,
     win_rate_pct: 50,
   },
-  reports: { backtests: [], validations: [] },
+  reports: { backtests: [], validations: [], ideas: [] },
 };
 
 const permissiveConfig: ValidationConfig = {

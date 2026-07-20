@@ -22,7 +22,7 @@ function makeEntry(overrides: Partial<StrategyRegistryEntry> = {}): StrategyRegi
       total_trades: 250,
       win_rate_pct: 55,
     },
-    reports: { backtests: [], validations: [] },
+    reports: { backtests: [], validations: [], ideas: [] },
     ...overrides,
   };
 }

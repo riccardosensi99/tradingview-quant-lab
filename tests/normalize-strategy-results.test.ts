@@ -3,32 +3,32 @@ import { normalizeStrategyResults } from "../scripts/research/normalize-strategy
 import { RawStrategyResultsSchema } from "../scripts/adapter/types.js";
 
 describe("normalizeStrategyResults", () => {
-  it("maps the 7 verified raw fields to Metrics field names", () => {
-    // Values match the real sr-volume-zones capture documented in
-    // MCP_CAPABILITIES.md and strategies/registry.yaml.
+  it("maps the verified raw fields to Metrics field names, scaling 0-1 fractions to 0-100", () => {
+    // Values match the real sr-volume-zones capture on 2026-07-20
+    // (FX:USDJPY/60) documented in strategies/registry.yaml.
     const raw = RawStrategyResultsSchema.parse({
-      net_profit: -0.059,
-      profit_factor: 0.969,
-      max_drawdown_percent: 0.478,
+      net_profit: -5.921068200000036,
+      net_profit_percent: -0.0005921068200000036,
+      profit_factor: 0.969026354992589,
+      max_drawdown_percent: 0.004781769874421474,
       total_trades: 135,
-      win_rate: 29.6,
-      sharpe: -2.347,
-      sortino: -0.92,
+      percent_profitable: 0.2962962962962963,
+      sharpe_ratio: -2.352952197836081,
+      sortino_ratio: -0.9203315779840591,
     });
 
     const metrics = normalizeStrategyResults(raw, { symbol: "FX:USDJPY", timeframe: "60" });
 
-    expect(metrics).toEqual({
-      symbol: "FX:USDJPY",
-      timeframe: "60",
-      net_profit: -0.059,
-      profit_factor: 0.969,
-      max_drawdown_pct: 0.478,
-      total_trades: 135,
-      win_rate_pct: 29.6,
-      sharpe_ratio: -2.347,
-      sortino_ratio: -0.92,
-    });
+    expect(metrics.symbol).toBe("FX:USDJPY");
+    expect(metrics.timeframe).toBe("60");
+    expect(metrics.net_profit).toBeCloseTo(-5.921068200000036);
+    expect(metrics.net_profit_pct).toBeCloseTo(-0.05921068200000036);
+    expect(metrics.profit_factor).toBeCloseTo(0.969026354992589);
+    expect(metrics.max_drawdown_pct).toBeCloseTo(0.4781769874421474);
+    expect(metrics.total_trades).toBe(135);
+    expect(metrics.win_rate_pct).toBeCloseTo(29.62962962962963);
+    expect(metrics.sharpe_ratio).toBeCloseTo(-2.352952197836081);
+    expect(metrics.sortino_ratio).toBeCloseTo(-0.9203315779840591);
   });
 
   it("leaves unmapped fields absent rather than guessing", () => {

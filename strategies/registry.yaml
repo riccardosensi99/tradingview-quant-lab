@@ -2,27 +2,30 @@
 # One entry per strategy, updated as it moves between
 # strategies/experimental/, strategies/validated/, and strategies/rejected/.
 # Schema and lifecycle: see .claude/skills/tradingview-strategy-research/validation-protocol.md
+# Zod schema: scripts/schemas/registry.ts
 
 strategies:
   - id: sr-volume-zones
-    name: "SR Volume Zones Strategy"
-    pine_script_id: "USER;a8d7c1de2cb54ff9b7a9b3085f625479" # from pine_list_scripts
-    status: experimental # experimental | validated | rejected
-    stage: backtest # idea | backtest | walk_forward | monte_carlo | paper | live
-    symbol_universe: ["FX:USDJPY"]
+    name: SR Volume Zones Strategy
+    pine_script_id: USER;a8d7c1de2cb54ff9b7a9b3085f625479
+    status: needs_more_data
+    stage: backtest
+    symbol_universe:
+      - FX:USDJPY
     timeframe: "60"
     created: 2026-07-20
     last_updated: 2026-07-20
     metrics:
-      # from data_get_strategy_results, single in-sample run on the currently loaded chart range
-      net_profit_pct: -0.059
-      profit_factor: 0.969
-      max_drawdown_pct: 0.478
-      sharpe_ratio: -2.347
-      sortino_ratio: -0.920
+      net_profit_pct: -0.059210682000000354
+      profit_factor: 0.969026354992589
+      max_drawdown_pct: 0.4781769874421474
+      sharpe_ratio: -2.352952197836081
+      sortino_ratio: -0.9203315779840591
       total_trades: 135
-      win_rate_pct: 29.6
+      win_rate_pct: 29.629629629629626
     reports:
-      backtests: ["reports/backtests/sr-volume-zones_2026-07-20.md"]
-      validations: []
-    notes: "Seeded from a real data_get_strategy_results read during MCP capability verification, not a research pass — single in-sample backtest only, no walk-forward/Monte Carlo run yet. profit_factor < 1 and negative Sharpe/Sortino on this run; do not promote past experimental without further validation."
+      backtests:
+        - reports/backtests/sr-volume-zones_2026-07-20.md
+      validations:
+        - reports/validations/sr-volume-zones_2026-07-20.md
+    notes: "Deliberate research pass (2026-07-20): static Pine checks clean (0 errors, 0 repainting/look-ahead findings). Re-ran data_get_strategy_results and fixed a normalizer bug in the process (see backtest report). classifyStrategy() -> needs_more_data: no out-of-sample split yet, and walk_forward/monte_carlo config windows are still null in config/validation.yaml so those stages cannot be run without fabricating parameters. total_trades (135) is also already below the 200 minimum. Do not promote until config/validation.yaml's walk_forward/monte_carlo settings are defined and a proper in-sample/out-of-sample pass is run."

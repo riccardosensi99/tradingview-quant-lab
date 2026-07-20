@@ -8,6 +8,14 @@
 // `.catchall(z.unknown())` to pass the remaining real-but-unverified fields
 // through without inventing names for them.
 //
+// The 7 verified field names below were corrected against a real
+// data_get_strategy_results capture on 2026-07-20 (sr-volume-zones,
+// FX:USDJPY/60): the live payload uses `percent_profitable` (0-1 fraction),
+// `sharpe_ratio`, `sortino_ratio`, and `net_profit_percent` (0-1 fraction) —
+// not the `win_rate` (0-100)/`sharpe`/`sortino` names originally assumed
+// here. See scripts/research/normalize-strategy-results.ts for the ×100
+// scaling this implies.
+//
 // Every other endpoint used by these skills (watchlist_get, symbol_info,
 // chart_get_state, data_get_ohlcv summary, data_get_study_values) has no
 // field-level detail recorded anywhere in this repo — MCP_CAPABILITIES.md
@@ -22,12 +30,13 @@ import { z } from "zod";
 export const RawStrategyResultsSchema = z
   .object({
     net_profit: z.number().optional(),
+    net_profit_percent: z.number().optional(),
     profit_factor: z.number().optional(),
     max_drawdown_percent: z.number().optional(),
     total_trades: z.number().optional(),
-    win_rate: z.number().optional(),
-    sharpe: z.number().optional(),
-    sortino: z.number().optional(),
+    percent_profitable: z.number().optional(),
+    sharpe_ratio: z.number().optional(),
+    sortino_ratio: z.number().optional(),
   })
   .catchall(z.unknown());
 export type RawStrategyResults = z.infer<typeof RawStrategyResultsSchema>;

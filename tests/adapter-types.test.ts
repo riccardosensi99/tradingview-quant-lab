@@ -7,21 +7,22 @@ import {
 } from "../scripts/adapter/types.js";
 
 describe("RawStrategyResultsSchema", () => {
-  it("accepts the 7 verified fields and passes through unverified extras", () => {
-    // Simulates a full ~19-field response — only 7 field names are actually
+  it("accepts the 8 verified fields and passes through unverified extras", () => {
+    // Simulates a full ~19-field response — only 8 field names are actually
     // verified in MCP_CAPABILITIES.md, the rest are unknown-but-real extras.
     const result = RawStrategyResultsSchema.parse({
-      net_profit: -0.059,
-      profit_factor: 0.969,
-      max_drawdown_percent: 0.478,
+      net_profit: -5.921068200000036,
+      net_profit_percent: -0.0005921068200000036,
+      profit_factor: 0.969026354992589,
+      max_drawdown_percent: 0.004781769874421474,
       total_trades: 135,
-      win_rate: 29.6,
-      sharpe: -2.347,
-      sortino: -0.92,
+      percent_profitable: 0.2962962962962963,
+      sharpe_ratio: -2.352952197836081,
+      sortino_ratio: -0.9203315779840591,
       some_unverified_field: "kept as-is",
       another_one: 42,
     });
-    expect(result.profit_factor).toBe(0.969);
+    expect(result.profit_factor).toBe(0.969026354992589);
     expect(result.some_unverified_field).toBe("kept as-is");
   });
 

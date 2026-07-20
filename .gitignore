@@ -27,3 +27,5 @@ reports/backtests/*
 !reports/backtests/.gitkeep
 reports/validations/*
 !reports/validations/.gitkeep
+reports/ideas/*
+!reports/ideas/.gitkeep
