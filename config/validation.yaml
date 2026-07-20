@@ -1,0 +1,14 @@
+# Configuration for the tradingview-strategy-research skill.
+# TODO: define walk-forward windows, Monte Carlo simulation count, and pass/fail thresholds.
+
+walk_forward:
+  in_sample_periods: null
+  out_of_sample_periods: null
+
+monte_carlo:
+  simulations: null
+
+thresholds:
+  min_sharpe: null
+  max_drawdown_pct: null
+  min_trades: null

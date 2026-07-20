@@ -1,0 +1,5 @@
+# Registry of strategies tracked by this lab.
+# TODO: one entry per strategy, updated as it moves between
+# strategies/experimental/, strategies/validated/, and strategies/rejected/.
+
+strategies: []

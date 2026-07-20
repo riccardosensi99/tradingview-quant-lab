@@ -1,0 +1,5 @@
+# Configuration for the tradingview-market-scanner skill.
+# TODO: define watchlists, timeframes, and scoring parameters.
+
+watchlist: []
+timeframes: []

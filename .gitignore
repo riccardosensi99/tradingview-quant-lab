@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Generated reports (keep folder structure, ignore contents)
+reports/scans/*
+!reports/scans/.gitkeep
+reports/backtests/*
+!reports/backtests/.gitkeep
+reports/validations/*
+!reports/validations/.gitkeep

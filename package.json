@@ -1,0 +1,14 @@
+{
+  "name": "tradingview-quant-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Market scanning and quant strategy research lab for TradingView.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "TODO: wire up a test runner (e.g. vitest)"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

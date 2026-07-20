@@ -1,0 +1,6 @@
+# Risk management parameters used by the tradingview-market-scanner skill.
+# TODO: define position sizing and portfolio-level limits.
+
+max_position_size_pct: null
+max_concurrent_positions: null
+max_correlated_exposure_pct: null
