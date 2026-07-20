@@ -1,5 +1,39 @@
 # Configuration for the tradingview-market-scanner skill.
-# TODO: define watchlists, timeframes, and scoring parameters.
+# TODO: define scoring parameters (see .claude/skills/tradingview-market-scanner/scoring.md).
+# Schema: scripts/schemas/config.ts (ScannerConfigSchema).
 
+# Empty = use the active TradingView watchlist (watchlist_get) instead of this list.
 watchlist: []
+
+# Empty = use the chart's current timeframe (chart_get_state) instead of this list.
 timeframes: []
+
+# data_get_ohlcv is hard-capped at 500 bars per call (tool limit, see MCP_CAPABILITIES.md) —
+# any per-symbol bar count used by scoring.md must stay at or below this.
+max_bars_per_symbol: 100
+
+max_results: 3
+min_score: 75
+mode: conservative
+require_closed_bar: true
+reject_stale_data: true
+
+# require_validated_strategy must stay true: the scanner may never propose a
+# setup from a strategy that isn't status=validated in strategies/registry.yaml.
+filters:
+  allow_no_trade: true
+  require_validated_strategy: true
+  correlation_filter: true
+  require_supported_provider: true
+  require_supported_timeframe: true
+  require_supported_regime: true
+  news_check_required: false
+  penalize_unverified_news: true
+
+reporting:
+  save_markdown: true
+  save_json: true
+  include_audit_log: true
+  include_mcp_tools_used: true
+  include_excluded_symbols: true
+  include_data_limitations: true

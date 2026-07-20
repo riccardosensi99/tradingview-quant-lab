@@ -1,6 +1,19 @@
 # Risk management parameters used by the tradingview-market-scanner skill.
 # TODO: define position sizing and portfolio-level limits.
+# Advisory only: tradingview-mcp has no order-execution/account tool, so nothing here
+# is enforced against real or simulated positions — it only shapes report output.
+# Schema: scripts/schemas/config.ts (RiskConfigSchema).
 
 max_position_size_pct: null
 max_concurrent_positions: null
 max_correlated_exposure_pct: null
+
+risk_per_trade_percent: 0.5
+max_total_risk_percent: 1.5
+minimum_risk_reward: 1.8
+maximum_open_setups: 3
+
+# Hard-forbidden — the schema rejects `true` for these outright.
+allow_martingale: false
+allow_averaging_down: false
+allow_recovery_sizing: false

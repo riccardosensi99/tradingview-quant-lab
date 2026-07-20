@@ -1,10 +1,14 @@
 # Configuration for the tradingview-strategy-research skill.
 # TODO: define walk-forward windows, Monte Carlo simulation count, and pass/fail thresholds.
+# Field names match strategies/registry.yaml's metrics block — keep them in sync.
+# Schema: scripts/schemas/config.ts (ValidationConfigSchema).
 
 walk_forward:
   in_sample_periods: null
   out_of_sample_periods: null
 
+# Monte Carlo runs on data_get_trades fills (no native per-bar equity curve —
+# see MCP_CAPABILITIES.md), reshuffled/resampled outside TradingView in scripts/.
 monte_carlo:
   simulations: null
 
@@ -12,3 +16,20 @@ thresholds:
   min_sharpe: null
   max_drawdown_pct: null
   min_trades: null
+  min_profit_factor: null
+
+# Validation criteria a strategy must pass before status can become "validated".
+minimum_out_of_sample_profit_factor: 1.20
+minimum_total_trades: 200
+require_positive_expectancy: true
+include_commissions: true
+include_spread: true
+include_slippage: true
+require_walk_forward: true
+require_monte_carlo: true
+require_parameter_stability: true
+require_out_of_sample: true
+
+# Hard-forbidden outcomes — the schema pins these to true.
+reject_repainting: true
+reject_lookahead_bias: true
