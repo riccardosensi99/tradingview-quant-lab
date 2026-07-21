@@ -60,9 +60,13 @@ tradingview-quant-lab/
 │   │                                      # the real logic lives in scripts/, not these docs)
 │   ├── tradingview-strategy-research/    # SKILL.md + validation-protocol.md, walk-forward.md,
 │   │                                      # monte-carlo.md (same caveat)
-│   └── tradingview-strategy-generator/   # SKILL.md + generation-protocol.md, hypothesis-template.md,
-│                                          # quality-gates.md, output-template.md, registry-integration.md —
-│                                          # generates falsifiable hypotheses, no MCP calls at all (§6, ADR 0003)
+│   ├── tradingview-strategy-generator/   # SKILL.md + generation-protocol.md, hypothesis-template.md,
+│   │                                      # quality-gates.md, output-template.md, registry-integration.md —
+│   │                                      # generates falsifiable hypotheses, no MCP calls at all (§6, ADR 0003)
+│   └── tradingview-lab/                  # SKILL.md + orchestration-rules.md, state-machine.md,
+│                                          # mcp-startup.md, approval-gates.md, output-template.md —
+│                                          # single entry point; delegates to the three skills above,
+│                                          # never duplicates their logic (§5, ADR 0004)
 │
 ├── config/
 │   ├── scanner.yaml    # watchlist/timeframes/max_results/min_score/mode/filters/reporting/regime
@@ -92,18 +96,29 @@ tradingview-quant-lab/
 │   ├── regime/      # Milestone 5: classify-regime.ts, from-config.ts, types.ts
 │   ├── scoring/     # Milestone 6: scoring-engine.ts, regime-component.ts, mtf-component.ts
 │   ├── risk/        # Milestone 6: position-sizing.ts, aggregate-risk.ts, correlation-filter.ts
-│   └── scanner/     # Milestone 7: select-strategies.ts, run-scan.ts, assemble-scan-input.ts,
-│                     #   report-markdown.ts, report-json.ts, types.ts
+│   ├── scanner/     # Milestone 7: select-strategies.ts, run-scan.ts, assemble-scan-input.ts,
+│   │                 #   report-markdown.ts, report-json.ts, types.ts
+│   ├── mcp/         # tradingview-lab: read-mcp-config.ts, process-status.ts, start-server.ts,
+│   │                 #   health-check.ts, startup-manager.ts — zero MCP calls (ADR 0001, ADR 0004);
+│   │                 #   interprets an already-obtained tv_health_check result, never calls it
+│   ├── orchestrator/ # tradingview-lab: types.ts, inspect-state.ts, choose-workflow.ts,
+│   │                 #   plan-lab-run.ts, audit.ts — delegates to generation/research/scanner
+│   │                 #   skills, never re-implements their logic (ADR 0004)
+│   └── signals/      # SignalPublisher interface + NoopSignalPublisher — the only implementation
+│                      #   shipped so far; real channels (Telegram/Discord/email/webhook) are
+│                      #   deliberately not implemented yet (§20)
 │
-├── tests/            # 36 files, 201 Vitest tests — one file per module above, plus fixtures
-│                      #   (test-paths.ts, scanner-fixtures.ts, hypothesis-fixtures.ts)
+├── tests/            # one file per module above, plus fixtures
+│                      #   (test-paths.ts, scanner-fixtures.ts, hypothesis-fixtures.ts,
+│                      #   orchestrator-fixtures.ts)
 │
 ├── reports/
 │   ├── scans/         # generated, gitignored except .gitkeep — Markdown + JSON per scan
 │   ├── backtests/     # generated, gitignored except .gitkeep (one real example is untracked
 │   │                   #   on disk: sr-volume-zones_2026-07-20.md, referenced by the registry)
 │   ├── validations/   # generated, gitignored except .gitkeep
-│   └── ideas/         # generated, gitignored except .gitkeep — tradingview-strategy-generator's output
+│   ├── ideas/         # generated, gitignored except .gitkeep — tradingview-strategy-generator's output
+│   └── lab-runs/      # generated, gitignored except .gitkeep — tradingview-lab's audit.jsonl
 │
 ├── research/          # freeform notes/analysis that doesn't fit structured skill output
 └── docs/decisions/    # ADRs — see §21
@@ -123,6 +138,9 @@ tradingview-quant-lab/
 | `scripts/risk/` | Risk/reward and position-size math, aggregate-risk capping, FX-exposure correlation filtering. | No | — |
 | `scripts/scanner/` | Orchestration: strategy selection (validated-only), gating, correlation + risk filtering, ranking, NO TRADE, Markdown/JSON report rendering, `assembleScanInput` (the one place real MCP-read data is shaped into the pipeline's input type). | No | everything above |
 | `scripts/generation/` | Idea generation for `tradingview-strategy-generator`: registry gap analysis, originality check against existing entries, quality gates, generation-report rendering, and mapping an approved hypothesis to a new registry entry. | No — this skill never calls MCP at all, not even indirectly via the adapter | `schemas/` (incl. `schemas/hypothesis.ts`), `scripts/regime/types.ts` (regime taxonomy reuse), `research/registry-io` (write step only) |
+| `scripts/mcp/` | `tradingview-lab`'s MCP boundary: reads/validates `.mcp.json`, informational OS-process detection, a guarded manual `startServer()` (opt-in, never automatic for this repo's stdio transport), and `interpretHealthCheck()` — a pure interpreter of an already-obtained `tv_health_check` payload. Composed by `startup-manager.ts` into 8 states (ADR 0004). | No — never calls `tv_health_check` itself, only interprets a result the calling agent already obtained | `zod` only |
+| `scripts/orchestrator/` | `tradingview-lab`'s decision engine: `inspectRegistryState`/`assessNeedsMoreData` (state facts), `chooseWorkflow` (deterministic priority state machine, resolves to at most one workflow), `planLabRun`/`formatLabStatus` (composes everything + the status block), `audit.ts` (structured per-run log). Delegates to the three existing skills — never re-implements gap analysis, scoring, or validation classification (ADR 0004). | No | `schemas/`, `research/registry-io`, `mcp/` |
+| `scripts/signals/` | `SignalPublisher` interface + `NoopSignalPublisher`, the only implementation shipped so far — future delivery channels (Telegram/Discord/email/webhook) can be added without touching `scripts/scanner/` (§20). | No | `scanner/types` |
 
 ## 6. Lifecycle delle strategie
 
@@ -242,6 +260,8 @@ Mechanics:
 9. Validation classification defaults to `needs_more_data` on any missing required evidence — it never interpolates or assumes.
 10. Reports are reproducible generated artifacts (gitignored except `.gitkeep`); only their frontmatter shape is schema-validated, not their full content.
 11. `StrategyRegistryEntrySchema` requires `pine_script_id`/`metrics` for every stage except `idea`, enforced via `superRefine`, not a blanket-optional relaxation — the schema still guarantees no non-idea entry lacks evidence (ADR 0003).
+12. `tradingview-lab`'s orchestrator delegates to the three existing skills and never re-implements their gap-analysis/scoring/validation logic; its own `scripts/orchestrator/` and `scripts/mcp/` modules only inspect state and decide, following the same MCP boundary as every other module (ADR 0004).
+13. MCP server readiness is judged solely by whether `mcp__tradingview__*` tools respond in the current session (`toolsAvailableInSession`), never by OS-level process scanning — `ps` cannot distinguish this session's own stdio-spawned server from an orphan left by a prior restart (verified live: 3 such orphans existed at design time). A manual server start is never automatic; it requires explicit per-run user confirmation (ADR 0004).
 
 ## 19. Definition of Done
 

@@ -32,3 +32,4 @@ What this makes easier, what it makes harder, what it forecloses.
 - [0001 — MCP calls only from the calling agent, never from scripts/](0001-mcp-boundary.md)
 - [0002 — Hard risk/validation rules enforced at the schema level](0002-schema-enforced-hard-rules.md)
 - [0003 — Idea-stage registry entries with no Pine code or backtest evidence](0003-idea-stage-registry-entries.md)
+- [0004 — Orchestrator delegates, never re-implements; MCP readiness is judged by tool availability, not by scanning processes](0004-orchestrator-mcp-startup-boundary.md)

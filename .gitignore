@@ -29,3 +29,5 @@ reports/validations/*
 !reports/validations/.gitkeep
 reports/ideas/*
 !reports/ideas/.gitkeep
+reports/lab-runs/*
+!reports/lab-runs/.gitkeep
